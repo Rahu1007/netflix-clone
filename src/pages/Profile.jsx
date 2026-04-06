@@ -1,55 +1,82 @@
 import React from 'react';
 import { useWatch } from '../context/WatchContext';
 import { useAuth } from '../context/AuthContext';
-import { motion } from 'framer-motion';
-import { LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = ({ openModal }) => {
   const { watchlist, history } = useWatch();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const renderGrid = (title, items) => (
-    <div style={{ marginBottom: '40px' }}>
-      <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>{title}</h2>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: '20px'
-      }}>
-        {items.map((item, i) => (
-          <motion.div
-            key={item.id + i}
-            whileHover={{ scale: 1.05 }}
-            onClick={() => openModal(item)}
-            style={{ cursor: 'pointer' }}
-          >
-            <img 
-              src={item.primaryImage?.url || 'https://placehold.co/300x450/2f2f2f/FFF?text=No+Image'} 
-              alt={item.primaryTitle} 
-              onError={(e) => { e.target.src = 'https://placehold.co/300x450/2f2f2f/FFF?text=No+Image' }}
-              style={{ width: '100%', borderRadius: '4px', height: '300px', objectFit: 'cover' }}
-            />
-          </motion.div>
-        ))}
-        {items.length === 0 && <p style={{ color: '#777' }}>Nothing here yet.</p>}
+  if (!user) {
+    return (
+      <div className="page" style={{ paddingTop: '100px', textAlign: 'center' }}>
+        <h2>Please Sign In to view your profile</h2>
+        <button className="btn btn-primary" onClick={() => navigate('/login')} style={{ marginTop: '20px' }}>Sign In</button>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div style={{ padding: '100px 40px', minHeight: '100vh', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-         <div>
-            <h1 style={{ fontSize: '36px' }}>Profile</h1>
-            <p style={{ color: '#aaa' }}>Signed in as: {user?.email}</p>
-         </div>
-         <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--card-bg)', padding: '10px 20px', borderRadius: '4px', color: 'white' }}>
-            <LogOut size={18} /> Sign Out
-         </button>
-      </div>
+    <div className="profile-screen page">
+        <div className="profile-header">
+          <div className="profile-avatar">
+            {(user.email || 'G')[0].toUpperCase()}
+          </div>
+          <div>
+            <div className="profile-name">{user.email === '__guest__' || user.uid === 'guest' ? 'Guest User' : user.displayName || 'Current User'}</div>
+            <div className="profile-email" style={{ fontFamily: 'var(--font-body)', opacity: 0.7 }}>{user.email}</div>
+          </div>
+          <button className="btn btn-secondary" style={{ marginLeft: 'auto' }} onClick={() => { logout(); navigate('/'); }}>
+            Sign Out
+          </button>
+        </div>
 
-      {renderGrid('My Watchlist', watchlist)}
-      {renderGrid('Watch History', history)}
+        <div className="section" style={{ padding: 0 }}>
+           <h2 className="section-title">📌 Watchlist <span style={{ fontSize: '14px', color: 'var(--muted)', fontWeight: 400 }}>({watchlist.length})</span></h2>
+           {watchlist.length > 0 ? (
+              <div className="card-row-grid" style={{ marginTop: '20px' }}>
+                {watchlist.map((item, i) => (
+                  <div key={item.id + i} className="media-card grid-card" onClick={() => openModal(item)}>
+                    {item.primaryImage?.url ? (
+                      <img src={item.primaryImage.url} alt={item.primaryTitle} className="media-card-img" />
+                    ) : (
+                      <div className="lazy-placeholder"></div>
+                    )}
+                    <div className="media-card-info">
+                      <div className="media-card-title">{item.primaryTitle}</div>
+                      <div className="media-card-meta">{item.startYear}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+           ) : (
+              <div className="profile-empty-state" style={{ marginTop: '20px' }}>No items in your watchlist yet. Browse and click ＋ to add.</div>
+           )}
+        </div>
+
+        <div className="section" style={{ padding: 0, marginTop: '40px' }}>
+           <h2 className="section-title">📺 Watch History <span style={{ fontSize: '14px', color: 'var(--muted)', fontWeight: 400 }}>({history.length})</span></h2>
+           {history.length > 0 ? (
+              <div className="card-row-grid" style={{ marginTop: '20px' }}>
+                {history.map((item, i) => (
+                  <div key={item.id + i} className="media-card grid-card" onClick={() => openModal(item)}>
+                    {item.primaryImage?.url ? (
+                      <img src={item.primaryImage.url} alt={item.primaryTitle} className="media-card-img" />
+                    ) : (
+                      <div className="lazy-placeholder"></div>
+                    )}
+                    <div className="media-card-info">
+                      <div className="media-card-title">{item.primaryTitle}</div>
+                      <div className="media-card-meta">{item.startYear}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+           ) : (
+              <div className="profile-empty-state" style={{ marginTop: '20px' }}>No watch history yet. Click on any title to start tracking.</div>
+           )}
+        </div>
     </div>
   );
 };

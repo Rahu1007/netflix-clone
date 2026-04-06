@@ -1,83 +1,72 @@
 import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { X, Play, Plus, ThumbsUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useWatch } from '../context/WatchContext';
+import { useAuth } from '../context/AuthContext';
 
-const MovieModal = ({ movie, onClose }) => {
-  const { addToWatchlist, addToHistory } = useWatch();
-
-  if (!movie) return null;
-
-  // Add to history automatically when opened
+const MovieModal = ({ item, closeModal }) => {
+  const { watchlist, addToWatchlist, history, addToHistory } = useWatch();
+  const { user } = useAuth();
+  
   useEffect(() => {
-    addToHistory(movie);
-  }, [movie]);
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'auto'; };
+  }, []);
+
+  if (!item) return null;
+
+  const inWL = watchlist.find(x => x.id === item.id);
+  const isWatched = history.find(x => x.id === item.id);
+
+  const tLabel = { movie: 'Movie', tv: 'TV Series', game: 'Video Game' }[item.type] || item.type;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.8)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.8 }}
-        style={{
-          background: 'var(--bg-color)',
-          width: '90%',
-          maxWidth: '850px',
-          maxHeight: '90vh',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          position: 'relative',
-          boxShadow: '0 0 20px rgba(0,0,0,0.5)'
-        }}
-      >
-        <button 
-           onClick={onClose}
-           style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10, background: '#181818', color: 'white', borderRadius: '50%', padding: '8px' }}>
-           <X />
-        </button>
-        
-        <div style={{ height: '50vh', position: 'relative', backgroundImage: `url(${movie.primaryImage?.url})`, backgroundSize: 'cover', backgroundPosition: 'center 20%' }}>
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '100%', background: 'linear-gradient(to top, var(--bg-color) 0%, transparent 100%)' }}></div>
-            <div style={{ position: 'absolute', bottom: '20px', left: '40px', display: 'flex', gap: '15px' }}>
-               <button style={{ padding: '10px 30px', fontSize: '18px', fontWeight: 'bold', backgroundColor: 'white', color: 'black', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                 <Play fill="black" /> Play
+    <AnimatePresence>
+      <div className="modal-overlay open" onClick={(e) => { if(e.target.className.includes('modal-overlay')) closeModal(); }}>
+        <motion.div 
+          className="modal"
+          initial={{ opacity: 0, y: 50, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+        >
+          <div className="modal-hero">
+            <img 
+               src={item.backdrop || item.primaryImage?.url || "https://placehold.co/800x400/1c1c26/FFF?text=No+Backdrop"} 
+               alt={item.primaryTitle} 
+               className="modal-hero-img" 
+            />
+            <div className="modal-hero-grad"></div>
+            <button className="modal-close" onClick={closeModal}>✕</button>
+          </div>
+          
+          <div className="modal-content">
+            <h2 className="modal-title">{item.primaryTitle}</h2>
+            <div className="modal-badges">
+              {item.startYear && <span className="badge badge-year">{item.startYear}</span>}
+              {item.rating?.aggregateRating && <span className="badge badge-rating">★ {item.rating.aggregateRating}</span>}
+              <span className="badge badge-genre">{tLabel}</span>
+            </div>
+            
+            <p className="modal-desc">{item.plot || 'No description available for this title.'}</p>
+            
+            <div className="modal-actions">
+               <button className="btn btn-primary">▶  Play</button>
+               <button 
+                  className="btn btn-secondary" 
+                  onClick={() => addToWatchlist(item)}
+               >
+                  {inWL ? '✓ In Watchlist' : '＋ Watchlist'}
                </button>
                <button 
-                  onClick={() => addToWatchlist(movie)}
-                  style={{ border: '2px solid rgba(255,255,255,0.7)', padding: '10px', borderRadius: '50%', color: 'white' }}>
-                 <Plus />
-               </button>
-               <button style={{ border: '2px solid rgba(255,255,255,0.7)', padding: '10px', borderRadius: '50%', color: 'white' }}>
-                 <ThumbsUp />
+                  className="btn btn-secondary" 
+                  onClick={() => addToHistory(item)}
+               >
+                  {isWatched ? '📺 Watched' : '📺 Mark as Watched'}
                </button>
             </div>
-        </div>
-
-        <div style={{ padding: '40px', display: 'flex', gap: '40px', overflowY: 'auto', maxHeight: '40vh' }}>
-            <div style={{ flex: 2 }}>
-               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '20px' }}>
-                  <span style={{ color: '#46d369', fontWeight: 'bold' }}>{movie.rating?.aggregateRating ? `${movie.rating.aggregateRating * 10}% Match` : 'New'}</span>
-                  <span>{movie.startYear}</span>
-                  <span style={{ border: '1px solid #777', padding: '0 5px' }}>{movie.type?.toUpperCase()}</span>
-               </div>
-               <h2 style={{ fontSize: '32px', marginBottom: '20px' }}>{movie.primaryTitle}</h2>
-               <p style={{ lineHeight: '1.6', fontSize: '16px' }}>{movie.plot || "Detailed plot not available at the moment."}</p>
-            </div>
-            <div style={{ flex: 1, color: '#aaa', fontSize: '14px' }}>
-                <p style={{ marginBottom: '10px' }}><b style={{ color: '#777' }}>Genres:</b> {movie.genres?.join(', ') || 'N/A'}</p>
-                <p><b style={{ color: '#777' }}>Votes:</b> {movie.rating?.voteCount?.toLocaleString() || 'N/A'}</p>
-            </div>
-        </div>
-      </motion.div>
-    </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
   );
 };
 

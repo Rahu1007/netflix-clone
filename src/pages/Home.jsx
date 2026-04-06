@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { fetchTitles } from '../api';
-import Navbar from '../components/Navbar';
 import InfiniteRow from '../components/InfiniteRow';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useParams } from 'react-router-dom';
 
 const Home = ({ openModal }) => {
-  const { type } = useParams(); // undefined = home, 'tv' = TV shows, 'movies' = Movies, 'games' = Video Games
+  const { type } = useParams();
   const [heroMovie, setHeroMovie] = useState(null);
 
   useEffect(() => {
-    // Fetch today's top show based on category or general
-    fetchTitles({ limit: 1, type }).then(data => {
+    fetchTitles({ limit: 5, type }).then(data => {
       if (data.titles && data.titles.length > 0) {
-        setHeroMovie(data.titles[0]);
+        // Find one with a backdrop to be the hero, else fallback to first
+        const hero = data.titles.find(x => x.backdrop) || data.titles[0];
+        setHeroMovie(hero);
       }
     });
   }, [type]);
@@ -25,94 +24,46 @@ const Home = ({ openModal }) => {
   ] : type === 'games' ? [
     { title: "Top Video Games", queryType: "games" }
   ] : [
-    { title: "Trending Now", queryType: "" },
-    { title: "Top TV Shows", queryType: "tv" },
-    { title: "Top Movies", queryType: "movies" }
+    { title: "🔥 Trending Now", queryType: "" },
+    { title: "📺 Top TV Shows", queryType: "tv" },
+    { title: "🎬 Top Movies", queryType: "movies" },
+    { title: "🎮 Top Video Games", queryType: "games" }
   ];
 
   return (
-    <AnimatePresence>
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
+    <div className="page pb-4">
         {/* Hero Section */}
-        {heroMovie && (
-          <div style={{
-            height: '80vh',
-            width: '100vw',
-            position: 'relative',
-            backgroundImage: `url(${heroMovie.primaryImage?.url})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            marginBottom: '40px'
-          }}>
-             <div style={{
-               position: 'absolute',
-               bottom: 0,
-               left: 0,
-               right: 0,
-               background: 'linear-gradient(to top, var(--bg-color) 0%, transparent 100%)',
-               height: '50%'
-             }}></div>
-             <div style={{
-               position: 'absolute',
-               bottom: '10%',
-               left: '40px',
-               width: '80%',
-               maxWidth: '800px'
-             }}>
-               <h1 style={{ fontSize: '48px', fontWeight: 'bold' }}>{heroMovie.primaryTitle}</h1>
-               <p style={{ fontSize: '18px', marginTop: '20px', textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-                 {heroMovie.plot || "No plot available for this title."}
-               </p>
-               <div style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
-                 <button 
-                  onClick={() => openModal(heroMovie)}
-                  style={{
-                   padding: '10px 30px',
-                   fontSize: '18px',
-                   fontWeight: 'bold',
-                   backgroundColor: 'white',
-                   color: 'black',
-                   borderRadius: '4px',
-                   display: 'flex',
-                   alignItems: 'center',
-                   gap: '10px'
-                 }}>
-                   Play
-                 </button>
-                 <button 
-                   onClick={() => openModal(heroMovie)}
-                   style={{
-                   padding: '10px 30px',
-                   fontSize: '18px',
-                   fontWeight: 'bold',
-                   backgroundColor: 'rgba(109, 109, 110, 0.7)',
-                   color: 'white',
-                   borderRadius: '4px'
-                 }}>
-                   More Info
-                 </button>
-               </div>
-             </div>
+        {heroMovie ? (
+          <div className="hero">
+            <div className="hero-bg-img" style={{ backgroundImage: `url(${heroMovie.backdrop || heroMovie.primaryImage?.url})` }}></div>
+            <div className="hero-gradient"></div>
+            <div className="hero-content">
+              <div className="hero-badge">🔥 Today's Top Pick</div>
+              <h1 className="hero-title">{heroMovie.primaryTitle}</h1>
+              <p className="hero-desc">{heroMovie.plot || "Unlimited entertainment ready for you."}</p>
+              <div className="hero-actions">
+                <button className="btn btn-primary" onClick={() => openModal(heroMovie)}>▶  Play Now</button>
+                <button className="btn btn-secondary" onClick={() => openModal(heroMovie)}>ℹ  More Info</button>
+              </div>
+            </div>
           </div>
+        ) : (
+          <div style={{ height: '100vh', background: 'var(--bg)' }}></div>
         )}
 
         {/* Rows */}
-        <div style={{ paddingBottom: '40px' }}>
+        <div style={{ paddingTop: '20px' }}>
            {rows.map(row => (
               <InfiniteRow 
                 key={row.title} 
                 title={row.title} 
                 type={row.queryType} 
                 openModal={openModal} 
+                isGrid={false}
               />
            ))}
         </div>
-      </motion.div>
-    </AnimatePresence>
+    </div>
   );
 };
 

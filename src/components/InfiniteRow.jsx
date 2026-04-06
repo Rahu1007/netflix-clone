@@ -1,88 +1,68 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { fetchTitles } from '../api';
-import { motion } from 'framer-motion';
+import { useWatch } from '../context/WatchContext';
+import { useAuth } from '../context/AuthContext';
 
-const InfiniteRow = ({ title, type, openModal }) => {
+const InfiniteRow = ({ title, type, openModal, isGrid }) => {
   const [items, setItems] = useState([]);
-  const [pageToken, setPageToken] = useState('');
+  const [pageToken, setPageToken] = useState('1');
   const [hasMore, setHasMore] = useState(true);
   const { ref, inView } = useInView({ threshold: 0.1 });
   const [loading, setLoading] = useState(false);
-
-  // To prevent memory leak, only show a window of items or use native smooth scroll
-  const scrollRef = useRef(null);
+  const { watchlist, addToWatchlist, history, addToHistory } = useWatch();
+  const { user } = useAuth();
 
   const loadMore = async () => {
     if (loading || !hasMore) return;
     setLoading(true);
     try {
-      const data = await fetchTitles({ limit: 50, pageToken, type });
+      const data = await fetchTitles({ limit: 20, pageToken, type });
+      if (data.titles.length === 0) { setHasMore(false); setLoading(false); return; }
       setItems(prev => {
-         // Deduplicate items to prevent key issues
          const newItems = data.titles.filter(t => !prev.find(p => p.id === t.id));
-         return [...prev, ...newItems].slice(0, 1000); // 10k items might crash standard DOM, slicing to 1000 or 100 per row.
+         return [...prev, ...newItems].slice(0, 1000);
       });
-      if (data.nextPageToken) {
-        setPageToken(data.nextPageToken);
-      } else {
-        setHasMore(false);
-      }
-    } catch(e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+      if (data.nextPageToken) setPageToken(data.nextPageToken);
+    } catch(e) { console.error(e); } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    if (inView) {
-      loadMore();
-    }
-  }, [inView]);
+  useEffect(() => { if (inView) loadMore(); }, [inView]);
+  useEffect(() => { loadMore(); }, [type]);
 
-  useEffect(() => {
-      loadMore();
-  }, [type]); // initial load
+  const typeClass = { movie: 'movie', tv: 'tv', game: 'game' };
+  const typeLabel = { movie: 'Film', tv: 'Series', game: 'Game' };
 
   return (
-    <div style={{ margin: '20px 0', padding: '0 40px' }}>
-      <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '10px' }}>{title}</h2>
-      <div 
-        ref={scrollRef}
-        style={{
-          display: 'flex',
-          overflowX: 'auto',
-          gap: '10px',
-          paddingBottom: '20px',
-          scrollbarWidth: 'none',
-        }}
-      >
+    <div className="section">
+      <div className="section-header">
+        <h2 className="section-title">{title}</h2>
+      </div>
+      <div className={isGrid ? "card-row-grid" : "card-row"}>
         {items.map((item, i) => {
-          const imgUrl = item.primaryImage?.url || 'https://via.placeholder.com/300x450/141414/ffffff?text=No+Image';
+          const inWL = watchlist.find(x => x.id === item.id);
+          const tClass = typeClass[item.type] || 'movie';
+          const tLabel = typeLabel[item.type] || item.type;
           return (
-            <motion.div
-              key={item.id + i}
-              whileHover={{ scale: 1.05 }}
-              style={{
-                flex: '0 0 auto',
-                width: '200px',
-                height: '300px',
-                borderRadius: 'var(--border-radius)',
-                cursor: 'pointer',
-                overflow: 'hidden',
-                position: 'relative'
-              }}
-              onClick={() => openModal(item)}
-            >
-              <img 
-                src={imgUrl} 
-                alt={item.primaryTitle} 
-                loading="lazy"
-                onError={(e) => { e.target.src = 'https://placehold.co/300x450/2f2f2f/FFF?text=No+Image' }}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </motion.div>
+            <div key={item.id + i} className={`media-card ${isGrid ? 'grid-card' : ''}`} onClick={() => { addToHistory(item); openModal(item); }}>
+              {item.primaryImage?.url ? (
+                <img src={item.primaryImage.url} alt={item.primaryTitle} className="media-card-img" />
+              ) : (
+                <div className="lazy-placeholder"></div>
+              )}
+              <span className={`type-badge ${tClass}`}>{tLabel}</span>
+              {item.rating?.aggregateRating && <span className="rating-badge">★ {item.rating.aggregateRating}</span>}
+              <div className="media-card-info">
+                <div className="media-card-title">{item.primaryTitle}</div>
+                <div className="media-card-meta">{item.startYear}</div>
+                <div className="media-card-actions">
+                  <button className={`card-action-btn ${inWL ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); addToWatchlist(item); }} title="Add to watchlist">
+                    {inWL ? '✓' : '＋'}
+                  </button>
+                  <button className="card-action-btn" onClick={(e) => { e.stopPropagation(); addToHistory(item); openModal(item); }}>▶</button>
+                </div>
+              </div>
+            </div>
           );
         })}
         {hasMore && (

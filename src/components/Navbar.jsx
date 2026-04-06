@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, Bell, User } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const Navbar = ({ style }) => {
+const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [query, setQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
+      setScrolled(window.scrollY > 40);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -20,49 +19,59 @@ const Navbar = ({ style }) => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(query)}`);
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 
+  const links = [
+    { id: '/', label: 'Home' },
+    { id: '/category/movies', label: 'Movies' },
+    { id: '/category/tv', label: 'TV Shows' },
+    { id: '/category/games', label: 'Video Games' }
+  ];
+
   return (
-    <nav style={{
-      ...style,
-      position: 'fixed',
-      top: 0,
-      width: '100%',
-      padding: '20px 40px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: scrolled ? 'var(--nav-bg)' : 'transparent',
-      transition: 'background-color var(--transition-speed)',
-      zIndex: 100
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-        <Link to="/" style={{ color: 'var(--accent)', fontSize: '24px', fontWeight: 'bold' }}>NETFLIX</Link>
-        <ul style={{ display: 'flex', gap: '20px', listStyle: 'none' }}>
-          <li><Link to="/">Home</Link></li>
-          <li><Link to="/category/tv">TV Shows</Link></li>
-          <li><Link to="/category/movies">Movies</Link></li>
-          <li><Link to="/category/games">Video Games</Link></li>
-        </ul>
+    <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
+      <Link to="/" style={{ textDecoration: 'none' }} className="navbar-logo">
+        STREAM<span>VAULT</span>
+      </Link>
+      <div className="nav-links" style={{ display: 'none' }}>
+        {/* On mobile we hide, but for desktop we show links */}
+      </div>
+      <div className="nav-links" style={{ display: window.innerWidth > 768 ? 'flex' : 'none' }}>
+        {links.map(l => (
+          <Link key={l.id} to={l.id} className={`nav-link ${location.pathname === l.id ? 'active' : ''}`} style={{ textDecoration: 'none' }}>
+            {l.label}
+          </Link>
+        ))}
       </div>
       
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <form onSubmit={handleSearch} style={{ display: 'flex', alignItems: 'center', background: searchOpen ? 'rgba(0,0,0,0.7)' : 'transparent', border: searchOpen ? '1px solid white' : 'none', padding: searchOpen ? '5px 10px' : '0' }}>
-          <Search onClick={() => setSearchOpen(!searchOpen)} style={{ cursor: 'pointer' }} />
-          {searchOpen && (
+      <div className="navbar-right">
+        <form onSubmit={handleSearch} style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.1)', borderRadius: '20px', padding: '0 10px' }}>
+            <button type="submit" className="search-btn" title="Search">
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <circle cx={11} cy={11} r={8} /><path d="m21 21-4.35-4.35" />
+            </svg>
+            </button>
             <input 
-              autoFocus
-              style={{ background: 'transparent', color: 'white', marginLeft: '10px', transition: 'width 0.3s' }}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Titles, people, genres..."
+              type="text" 
+              placeholder="Titles, people, genres" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ background: 'transparent', border: 'none', color: 'white', padding: '5px', width: '120px', outline: 'none' }}
             />
-          )}
         </form>
-        <Link to="/profile"><User /></Link>
+
+        {user ? (
+          <Link to="/profile" className="profile-btn" title="Profile" style={{ textDecoration: 'none' }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'white' }}>
+              {(user.email || 'G')[0].toUpperCase()}
+            </div>
+          </Link>
+        ) : (
+          <Link to="/login" className="nav-link active" style={{ textDecoration: 'none' }}>Sign In</Link>
+        )}
       </div>
     </nav>
   );

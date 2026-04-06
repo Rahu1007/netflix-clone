@@ -1,57 +1,56 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { searchTitles } from '../api';
-import { motion } from 'framer-motion';
+import InfiniteRow from '../components/InfiniteRow';
 
 const Search = ({ openModal }) => {
-  const [searchParams] = useSearchParams();
-  const query = searchParams.get('q');
   const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  const location = useLocation();
+  const query = new URLSearchParams(location.search).get('q');
 
   useEffect(() => {
-    // Debounce is implicit if it comes from Navbar enter press, but if typing directly:
-    const delayDebounceFn = setTimeout(() => {
-      if (query) {
-        setLoading(true);
-        searchTitles(query).then(data => {
-            setResults(data.titles || []);
-            setLoading(false);
-        }).catch(() => setLoading(false));
-      }
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
+    if (query) {
+      setLoading(true);
+      searchTitles(query).then(data => {
+        setResults(data.titles || []);
+        setLoading(false);
+      });
+    } else {
+      setResults([]);
+      setLoading(false);
+    }
   }, [query]);
 
   return (
-    <div style={{ padding: '100px 40px', minHeight: '100vh' }}>
-      <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>Search Results for: {query}</h2>
-      {loading ? <p>Loading...</p> : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap: '20px'
-        }}>
-          {results.map((item, i) => (
-            <motion.div
-              key={item.id + i}
-              whileHover={{ scale: 1.05 }}
-              onClick={() => openModal(item)}
-              style={{ cursor: 'pointer' }}
-            >
-              <img 
-                src={item.primaryImage?.url || 'https://placehold.co/300x450/2f2f2f/FFF?text=No+Image'} 
-                alt={item.primaryTitle} 
-                onError={(e) => { e.target.src = 'https://placehold.co/300x450/2f2f2f/FFF?text=No+Image' }}
-                style={{ width: '100%', borderRadius: '4px', height: '300px', objectFit: 'cover' }}
-              />
-              <p style={{ marginTop: '10px', fontSize: '14px', textAlign: 'center' }}>{item.primaryTitle}</p>
-            </motion.div>
-          ))}
-          {results.length === 0 && <p>No results found.</p>}
-        </div>
-      )}
+    <div className="page" style={{ paddingTop: '100px', minHeight: '100vh', paddingBottom: '40px' }}>
+       {loading ? (
+         <div style={{ textAlign: 'center', marginTop: '50px' }}>Searching...</div>
+       ) : (
+         <div className="section">
+           <h2 className="section-title">Search Results for "{query}"</h2>
+           <div className="card-row-grid" style={{ marginTop: '20px' }}>
+              {results.length > 0 ? (
+                results.map((item, i) => (
+                  <div key={item.id + i} className="media-card grid-card" onClick={() => openModal(item)}>
+                    {item.primaryImage?.url ? (
+                      <img src={item.primaryImage.url} alt={item.primaryTitle} className="media-card-img" />
+                    ) : (
+                      <div className="lazy-placeholder"></div>
+                    )}
+                    <div className="media-card-info">
+                      <div className="media-card-title">{item.primaryTitle}</div>
+                      <div className="media-card-meta">{item.startYear}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ color: 'var(--muted)', width: '100%', padding: '20px' }}>No results found.</div>
+              )}
+           </div>
+         </div>
+       )}
     </div>
   );
 };
