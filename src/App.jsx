@@ -60,7 +60,7 @@ function App() {
       </Routes>
 
       {selectedMovie && (
-        <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
+        <MovieModal item={selectedMovie} closeModal={() => setSelectedMovie(null)} />
       )}
     </BrowserRouter>
   );
