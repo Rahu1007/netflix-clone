@@ -9,24 +9,34 @@ export function normMovie(m) { return { id: 'mv_' + m.id, rawId: m.id, type: 'mo
 export function normTV(t) { return { id: 'tv_' + t.id, rawId: t.id, type: 'tv', primaryTitle: t.name || t.title, primaryImage: { url: t.poster_path ? IMG + t.poster_path : null }, backdrop: t.backdrop_path ? BG + t.backdrop_path : null, plot: t.overview, startYear: (t.first_air_date || t.release_date || '').slice(0, 4), rating: { aggregateRating: t.vote_average?.toFixed(1) }, genres: t.genre_ids || [] } }
 export function normGame(g) { return { id: 'gm_' + g.id, rawId: g.id, type: 'game', primaryTitle: g.name, primaryImage: { url: g.background_image }, backdrop: g.background_image, plot: 'A video game released on ' + (g.platforms?.map(p => p.platform.name).join(', ') || 'multiple platforms') + '.', startYear: (g.released || '').slice(0, 4), rating: { aggregateRating: g.rating?.toFixed(1) }, genres: [] } }
 
+// Fast local memory cache to eliminate redundant network delays
+const cache = new Map();
+async function apiFetch(url, ttl = 300000) {
+  const now = Date.now();
+  if (cache.has(url)) {
+    const { data, ts } = cache.get(url);
+    if (now - ts < ttl) return data;
+  }
+  const r = await fetch(url);
+  const data = await r.json();
+  cache.set(url, { data, ts: now });
+  return data;
+}
+
 export const fetchTitles = async ({ limit = 20, pageToken = '1', type = '' }) => {
   let results = [];
   try {
      if (type === 'tv') {
-        const r = await fetch(`${TMDB}/tv/popular?api_key=${TMDB_KEY}&page=${pageToken}`);
-        const d = await r.json();
+        const d = await apiFetch(`${TMDB}/tv/popular?api_key=${TMDB_KEY}&page=${pageToken}`);
         results = (d.results || []).map(normTV);
      } else if (type === 'movies') {
-        const r = await fetch(`${TMDB}/movie/popular?api_key=${TMDB_KEY}&page=${pageToken}`);
-        const d = await r.json();
+        const d = await apiFetch(`${TMDB}/movie/popular?api_key=${TMDB_KEY}&page=${pageToken}`);
         results = (d.results || []).map(normMovie);
      } else if (type === 'games') {
-        const r = await fetch(`${RAWG}/games?key=${RAWG_KEY}&page=${pageToken}&page_size=${limit}&ordering=-rating`);
-        const d = await r.json();
+        const d = await apiFetch(`${RAWG}/games?key=${RAWG_KEY}&page=${pageToken}&page_size=${limit}&ordering=-rating`);
         results = (d.results || []).map(normGame);
      } else {
-        const r = await fetch(`${TMDB}/trending/all/day?api_key=${TMDB_KEY}&page=${pageToken}`);
-        const d = await r.json();
+        const d = await apiFetch(`${TMDB}/trending/all/day?api_key=${TMDB_KEY}&page=${pageToken}`);
         results = (d.results || []).map(x => x.media_type === 'movie' ? normMovie(x) : normTV(x));
      }
   } catch(e) { console.error(e); }
