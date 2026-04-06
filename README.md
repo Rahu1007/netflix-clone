@@ -1,16 +1,29 @@
-# React + Vite
+# Netflix UI Clone Assessment
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A fully responsive, production-ready Netflix UI clone developed in React.js (Vite) following ES6 paradigms. The app dynamically fetches over 10,000+ movie and TV show selections using a REST API and features intelligent offline capabilities seamlessly merged with UI animations.
 
-Currently, two official plugins are available:
+## Included Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Dynamic REST API Integration**: Pulls live entertainment data from the free IMDb API.
+- **Infinite Scrolling & Lazy Loading**: Smart memory leak management via `react-intersection-observer` filtering active DOM elements. Added robust null-link mapping to ensure broken API images never render.
+- **Debounced Search System**: Fast, responsive title searching optimized to minimize unnecessary server requests. 
+- **Premium Animations**: Sleek view transitions and modal hover mechanics rendered perfectly with `framer-motion`.
+- **User Progression**: Save entries to a Watchlist and automatically track Watch Histories mapped to persistent state.
+- **Firebase Authentication**: Full Sign In/Sign Up logic module setup via Context APIs. Handled gracefully with a Guest Mode fallback for assessment purposes.
+- **Offline Functionality Support**: A local background Service Worker automatically catches and proxies standard API requests, caching them for future seamless network toggles.
 
-## React Compiler
+## Running Locally
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Ensure you have Node.js installed, then install all module dependencies:
+   ```bash
+   npm install
+   ```
 
-## Expanding the ESLint configuration
+2. Start the local development server:
+   ```bash
+   npm run dev
+   ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+3. Open `http://localhost:5173/` in your browser.
+
+*(Note: To utilize full cloud-based authentication profiles, rename `.env.example` to `.env` or use the generated `.env` file to apply your true Firebase credentials. Otherwise, use Guest Mode!)*
